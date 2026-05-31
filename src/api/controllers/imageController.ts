@@ -319,7 +319,7 @@ export const delete_avatar = asyncErrorHandler(async (req, res, next) => {
   delete_image_fs(filename);
 });
 
-const delete_image_fs = (
+export const delete_image_fs = (
   filename: string,
   { only_thumbnail }: DeleteImageOptions = { only_thumbnail: false },
 ) => {
