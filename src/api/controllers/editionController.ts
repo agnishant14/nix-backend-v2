@@ -1,3 +1,4 @@
+import fs from "fs";
 import mongoose from "mongoose";
 import CustomError from "../../config/CustomError";
 import asyncErrorHandler from "../helpers/asyncErrorHandler";
@@ -143,6 +144,26 @@ export const deleteEdition = asyncErrorHandler(async (req, res, next) => {
   }
 
   console.log("Edition deleted", edition, "by user", req.body.email);
+
+  fs.unlink(`uploads/edition-${edition.edition_id}`, (err) => {
+    if (err) {
+      if (err.code !== "ENOENT") {
+        console.error("Deleting edition image failed", err, id);
+      }
+      return;
+    }
+    console.log("Image deleted for deleted edition");
+  });
+
+  fs.unlink(`thumbnails/edition-${edition.edition_id}_256`, (err) => {
+    if (err) {
+      if (err.code !== "ENOENT") {
+        console.error("Deleting edition thumbnail failed", err, id);
+      }
+      return;
+    }
+    console.log("Thumbnail deleted for deleted edition");
+  });
 
   res.status(StatusCode.OK).json({
     status: "success",
