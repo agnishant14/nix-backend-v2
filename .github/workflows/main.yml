@@ -10,6 +10,11 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+# Prevents parallel deployment collisions on rapid pushes
+concurrency:
+  group: deploy-nix-backend-${{ github.ref }}
+  cancel-in-progress: true
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -24,30 +29,23 @@ jobs:
         with:
           submodules: true
 
-      - name: Get to work dir
-        run: cd $GITHUB_WORKSPACE
-
-      # Ensure target directory exists (ownership already fixed)
+      # Ensure target directory exists
       - name: Ensure target directory exists
         run: |
           mkdir -p /home/dvishal485/TeamPortal/nix-backend
 
-      # Copy source code to NEW target dir with permission fixes
+      # Copy source code to target dir with permission fixes and exclusions
       - name: Copy source code to target dir
         run: |
-          mkdir -p /home/dvishal485/TeamPortal/nix-backend
-          rsync -avz --no-group --no-owner --chmod=D755,F644 --exclude 'uploads/' $GITHUB_WORKSPACE/ /home/dvishal485/TeamPortal/nix-backend/
+          rsync -avz --no-group --no-owner --chmod=D755,F644 --exclude 'uploads/' --exclude 'node_modules/' $GITHUB_WORKSPACE/ /home/dvishal485/TeamPortal/nix-backend/
 
-      - name: Get to target dir
-        run: cd /home/dvishal485/TeamPortal/nix-backend
-
+      # Install exact dependencies cleanly from package-lock.json
       - name: Install dependencies
         run: |
           cd /home/dvishal485/TeamPortal/nix-backend
-          npm i
+          npm ci
 
-      # Updated PM2 restart command with correct process name
+      # Reload the Root PM2 process zero-downtime
       - name: Deploy to web
         run: |
-          cd /home/dvishal485/TeamPortal/nix-backend
-          pm2 restart nix-shell-env
+          sudo pm2 reload nix-shell-env || sudo pm2 restart nix-shell-env
